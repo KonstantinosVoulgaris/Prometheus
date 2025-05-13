@@ -1,0 +1,75 @@
+# STEP 1: Install/Upgrade necessary libraries
+!pip install --upgrade yfinance openpyxl --quiet
+
+# STEP 2: Connect to Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+# STEP 3: Import libraries
+import yfinance as yf
+import pandas as pd
+import os
+import time
+
+# STEP 4: Settings
+ticker = 'IONQ'
+sector = 'Information Technology'
+industry = 'Quantum Computing'
+start_date = '2021-01-05'
+end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
+retries = 3
+wait_times = [15, 30, 60]  # delay in seconds for each retry
+
+# STEP 5: Try downloading data with retry/backoff
+df = pd.DataFrame()
+for i in range(retries):
+    try:
+        print(f"🔄 Attempt {i+1} to download data...")
+        df = yf.download(ticker, start=start_date, end=end_date, interval='1d', auto_adjust=False)
+        if not df.empty:
+            print("✅ Data download successful!")
+            break
+    except Exception as e:
+        print(f"❌ Error: {e}")
+    print(f"⏳ Waiting {wait_times[i]} seconds before the next attempt...\n")
+    time.sleep(wait_times[i])
+else:
+    raise Exception("❌ Download failed after 3 attempts due to rate limiting.")
+
+# STEP 6: Process data
+df.reset_index(inplace=True)
+df['Date'] = pd.to_datetime(df['Date']).dt.date
+df['Ticker'] = ticker
+df['Sector'] = sector
+df['Industry'] = industry
+df['Daily Change'] = df['Close'].pct_change()
+
+# STEP 6.4: Remove MultiIndex (if present)
+if isinstance(df.columns, pd.MultiIndex):
+    df.columns = df.columns.get_level_values(0)
+
+# STEP 6.5: Fill in missing dates
+def fill_missing_dates(df, start_date, end_date):
+    full_range = pd.date_range(start=start_date, end=end_date, freq='D')
+    full_df = pd.DataFrame({'Date': full_range.date})
+    merged_df = pd.merge(full_df, df, on='Date', how='left')
+    return merged_df
+
+df = fill_missing_dates(df, start_date, end_date)
+
+# STEP 7: Select final columns
+df = df[['Date', 'Ticker', 'Sector', 'Industry', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Daily Change']]
+
+# STEP 8: Remove MultiIndex from columns
+df.columns = df.columns.get_level_values(0)
+
+# STEP 9: Sort in descending date order
+df = df.sort_values(by="Date", ascending=False).reset_index(drop=True)
+
+# STEP 10: Save to Google Drive
+output_folder = '/content/drive/My Drive/Voulgaris I. Konstantinos/IONQ/Stock_Data'
+os.makedirs(output_folder, exist_ok=True)
+output_path = f'{output_folder}/IONQ_daily.xlsx'
+df.to_excel(output_path, index=False)
+
+print(f"✅ File saved to Drive: {output_path}")
