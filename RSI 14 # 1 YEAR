@@ -1,0 +1,39 @@
+from google.colab import drive
+drive.mount('/content/drive')
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# === Load Data ===
+df = pd.read_excel("/content/drive/My Drive/...")
+df = df.dropna(subset=["Close"])
+df["Date"] = pd.to_datetime(df["Date"])
+df = df.sort_values("Date")
+
+# === Filter for 1 Έτος ===
+one_year_ago = df["Date"].max() - pd.DateOffset(years=1)
+df = df[df["Date"] >= one_year_ago].copy()
+
+# === RSI (14 period) ===
+delta = df["Close"].diff()
+gain = delta.clip(lower=0)
+loss = -delta.clip(upper=0)
+
+avg_gain = gain.rolling(window=14).mean()
+avg_loss = loss.rolling(window=14).mean()
+
+rs = avg_gain / avg_loss
+df["RSI"] = 100 - (100 / (1 + rs))
+
+# === Diagram RSI ===
+plt.figure(figsize=(14, 4))
+plt.plot(df["Date"], df["RSI"], label="RSI (14)", color="purple", linewidth=2)
+plt.axhline(70, color="red", linestyle="--", alpha=0.6)
+plt.axhline(30, color="green", linestyle="--", alpha=0.6)
+plt.title("RSI for IONQ - 1 Year")
+plt.xlabel("Date")
+plt.ylabel("RSI")
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.show()
