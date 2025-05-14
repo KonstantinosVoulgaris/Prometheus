@@ -1,0 +1,35 @@
+from google.colab import drive
+drive.mount('/content/drive')
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# === Φόρτωση Δεδομένων ===
+df = pd.read_excel("/content/drive/....")
+df = df.dropna(subset=["Close"])
+df["Date"] = pd.to_datetime(df["Date"])
+df = df.sort_values("Date")
+
+# === Φιλτράρισμα για 1 έτος ===
+one_year_ago = df["Date"].max() - pd.DateOffset(years=1)
+df = df[df["Date"] >= one_year_ago].copy()
+
+# === MACD Υπολογισμός (12 / 26 / 9) ===
+df["EMA_fast"] = df["Close"].ewm(span=12, adjust=False).mean()
+df["EMA_slow"] = df["Close"].ewm(span=26, adjust=False).mean()
+df["MACD"] = df["EMA_fast"] - df["EMA_slow"]
+df["Signal"] = df["MACD"].ewm(span=9, adjust=False).mean()
+df["MACD_Histogram"] = df["MACD"] - df["Signal"]
+
+# === MACD Διάγραμμα ===
+plt.figure(figsize=(14, 6))
+plt.plot(df["Date"], df["MACD"], label="MACD", linewidth=2)
+plt.plot(df["Date"], df["Signal"], label="Signal", linestyle='--')
+plt.bar(df["Date"], df["MACD_Histogram"], label="Histogram", color="gray", alpha=0.4)
+plt.title("MACD για IONQ - 1 Έτος")
+plt.xlabel("Ημερομηνία")
+plt.ylabel("Τιμή MACD")
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.show()
