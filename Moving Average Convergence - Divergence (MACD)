@@ -1,1 +1,38 @@
+# STEP 1: Conect with Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
 
+# STEP 2: Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# STEP 3: Load stock's price data
+file_path = "/content/drive/My Drive/...stock_data.xlsx"
+df = pd.read_excel(file_path)
+df["Date"] = pd.to_datetime(df["Date"])
+df = df.sort_values("Date")
+
+# STEP 4: MACD Calculation
+df["EMA_12"] = df["Close"].ewm(span=12, adjust=False).mean()
+df["EMA_26"] = df["Close"].ewm(span=26, adjust=False).mean()
+df["MACD"] = df["EMA_12"] - df["EMA_26"]
+df["Signal"] = df["MACD"].ewm(span=9, adjust=False).mean()
+df["MACD_Histogram"] = df["MACD"] - df["Signal"]
+
+# STEP 5: Save
+output_path = "/content/drive/My Drive/...Stock_MACD.xlsx"
+df[["Date", "Close", "MACD", "Signal", "MACD_Histogram"]].to_excel(output_path, index=False)
+print(f"✅ MACD saved to: {output_path}")
+
+# ✅ STEP 6: Plot MACD diagram
+plt.figure(figsize=(14, 6))
+plt.plot(df["Date"], df["MACD"], label="MACD", linewidth=2)
+plt.plot(df["Date"], df["Signal"], label="Signal Line", linestyle="--")
+plt.bar(df["Date"], df["MACD_Histogram"], label="Histogram", color="gray", alpha=0.4)
+plt.title("MACD for *Stock's Name* ")
+plt.xlabel("Date")
+plt.ylabel("Prices MACD")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
