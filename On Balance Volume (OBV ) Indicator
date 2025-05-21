@@ -1,1 +1,37 @@
+# STEP 1: Connect to Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+# STEP 2: Import libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# STEP 3: Load adjusted prices file (path redacted)
+file_path = "PATH_TO_DAILY_EXCEL_FILE"
+df = pd.read_excel(file_path)
+df["Date"] = pd.to_datetime(df["Date"])
+df = df.sort_values("Date")
+
+# STEP 4: Calculate OBV
+df = df.dropna(subset=["Close", "Volume"]).copy()
+df["OBV"] = 0
+df.loc[df["Close"] > df["Close"].shift(1), "OBV"] = df["Volume"]
+df.loc[df["Close"] < df["Close"].shift(1), "OBV"] = -df["Volume"]
+df["OBV"] = df["OBV"].cumsum()
+
+# STEP 5: Save output OBV file
+output_path = "OUTPUT_PATH_FOR_OBV_EXCEL"
+df[["Date", "Close", "OBV"]].to_excel(output_path, index=False)
+print(f"OBV saved to: {output_path}")
+
+# STEP 6: Plot OBV
+plt.figure(figsize=(14, 4))
+plt.plot(df["Date"], df["OBV"], label="OBV", color="blue", linewidth=2)
+plt.title("On-Balance Volume (OBV)")
+plt.xlabel("Date")
+plt.ylabel("OBV")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
