@@ -1,0 +1,41 @@
+# STEP 1: Install & Connect to Google Drive
+!pip install --upgrade openpyxl --quiet
+from google.colab import drive
+drive.mount('/content/drive')
+
+# STEP 2: Import libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# STEP 3: Load Stock Excel file
+file_path = "YOUR_LOCAL_OR_CLOUD_PATH/Stock_daily.xlsx"  # Replace with your actual path
+df = pd.read_excel(file_path)
+
+# STEP 4: Convert Date and sort
+df = df.dropna(subset=["Close"]).copy()
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df = df.dropna(subset=["Date"])
+df = df.sort_values("Date")
+
+# STEP 5: Calculate Z-Score on adjusted Close
+df["MA20"] = df["Close"].rolling(window=20).mean()
+df["STD20"] = df["Close"].rolling(window=20).std()
+df["Z_Score"] = (df["Close"] - df["MA20"]) / df["STD20"]
+
+# STEP 6: Save output to Excel
+output_path = "YOUR_LOCAL_OR_CLOUD_PATH/Stock_ZScore.xlsx"  # Replace with your actual path
+df[["Date", "Close", "Z_Score"]].to_excel(output_path, index=False)
+print(f" Z-Score file saved at: {output_path}")
+
+# STEP 7: Plot Z-Score
+plt.figure(figsize=(14, 4))
+plt.plot(df["Date"], df["Z_Score"], label="Z-Score (20)", color="green", linewidth=2)
+plt.axhline(2, color="red", linestyle="--", alpha=0.6, label="Overbought +2")
+plt.axhline(-2, color="red", linestyle="--", alpha=0.6, label="Oversold -2")
+plt.title("Z-Score (20) for *Stock*")
+plt.xlabel("Date")
+plt.ylabel("Z-Score")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
