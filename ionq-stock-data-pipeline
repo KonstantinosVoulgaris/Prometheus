@@ -1,54 +1,54 @@
-# STEP 1: Install/Upgrade necessary libraries
-!pip install --upgrade yfinance openpyxl --quiet
+# STEP 1: install yfinance
+!pip install yfinance openpyxl --quiet
 
-# STEP 2: Connect to Google Drive
+# STEP 2: Connect with Google Drive
 from google.colab import drive
 drive.mount('/content/drive')
 
-# STEP 3: Import libraries
+# STEP 3: Import Libraries
 import yfinance as yf
 import pandas as pd
 import os
 import time
+import matplotlib.pyplot as plt
 
 # STEP 4: Settings
-ticker = 'IONQ'
-sector = 'Information Technology'
-industry = 'Quantum Computing'
-start_date = '2021-01-05'
-end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
+ticker = '***'
+sector = '***'
+industry = '***'
+start_date = '***'
+end_date = '***'
 retries = 3
-wait_times = [15, 30, 60]  # delay in seconds for each retry
+wait_times = [15, 30, 60]
 
-# STEP 5: Try downloading data with retry/backoff
+# STEP 5: Download data with auto_adjust=True
 df = pd.DataFrame()
 for i in range(retries):
     try:
-        print(f"🔄 Attempt {i+1} to download data...")
-        df = yf.download(ticker, start=start_date, end=end_date, interval='1d', auto_adjust=False)
+        print(f"🔄 Try {i+1} to download data...")
+        df = yf.download(ticker, start=start_date, end=end_date, interval='1d', auto_adjust=True)
         if not df.empty:
-            print("✅ Data download successful!")
+            print("✅ Success!")
             break
     except Exception as e:
         print(f"❌ Error: {e}")
-    print(f"⏳ Waiting {wait_times[i]} seconds before the next attempt...\n")
+    print(f"⏳ Wait {wait_times[i]} sec...\n")
     time.sleep(wait_times[i])
 else:
-    raise Exception("❌ Download failed after 3 attempts due to rate limiting.")
+    raise Exception("❌ Download failed after 3 attempts.")
 
-# STEP 6: Process data
+# STEP 6: Refine
 df.reset_index(inplace=True)
+if isinstance(df.columns, pd.MultiIndex):
+    df.columns = df.columns.get_level_values(0)
+
 df['Date'] = pd.to_datetime(df['Date']).dt.date
 df['Ticker'] = ticker
 df['Sector'] = sector
 df['Industry'] = industry
 df['Daily Change'] = df['Close'].pct_change()
 
-# STEP 6.4: Remove MultiIndex (if present)
-if isinstance(df.columns, pd.MultiIndex):
-    df.columns = df.columns.get_level_values(0)
-
-# STEP 6.5: Fill in missing dates
+# STEP 7: Fill missind dates
 def fill_missing_dates(df, start_date, end_date):
     full_range = pd.date_range(start=start_date, end=end_date, freq='D')
     full_df = pd.DataFrame({'Date': full_range.date})
@@ -57,19 +57,25 @@ def fill_missing_dates(df, start_date, end_date):
 
 df = fill_missing_dates(df, start_date, end_date)
 
-# STEP 7: Select final columns
-df = df[['Date', 'Ticker', 'Sector', 'Industry', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Daily Change']]
-
-# STEP 8: Remove MultiIndex from columns
-df.columns = df.columns.get_level_values(0)
-
-# STEP 9: Sort in descending date order
+# STEP 8: Final columns for Classification
+df = df[['Date', 'Ticker', 'Sector', 'Industry', 'Open', 'High', 'Low', 'Close', 'Volume', 'Daily Change']]
 df = df.sort_values(by="Date", ascending=False).reset_index(drop=True)
 
-# STEP 10: Save to Google Drive
-output_folder = '/content/drive/My Drive/Voulgaris I. Konstantinos/IONQ/Stock_Data'
+# STEP 9: Save
+output_folder = "/content/drive/My Drive/Voulgaris I. Konstantinos/NVDA/NVDA Stock_Data"
 os.makedirs(output_folder, exist_ok=True)
-output_path = f'{output_folder}/IONQ_daily.xlsx'
+output_path = f"{output_folder}/NVDA_daily.xlsx"
 df.to_excel(output_path, index=False)
 
-print(f"✅ File saved to Drive: {output_path}")
+# STEP 10: Diagram *stock's name* (Close)
+plt.figure(figsize=(14, 5))
+plt.plot(df["Date"], df["Close"], label="NVDA Adjusted Close", color="green")
+plt.title("Stock Price (2010 - 2025)")
+plt.xlabel("Date")
+plt.ylabel("Price ($)")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print(f"✅ Document saved in Drive: {output_path}")
