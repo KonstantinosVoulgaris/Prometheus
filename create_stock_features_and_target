@@ -1,0 +1,105 @@
+STEP 1: Install & Connect to Google Drive
+
+!pip install --upgrade openpyxl --quiet
+from google.colab import drive
+drive.mount('/content/drive')
+
+STEP 2: Import libraries
+
+import pandas as pd
+import os
+
+STEP 3: Define paths (redacted for privacy)
+
+base_path = "BASE_PATH_TO_DAILY_PRICES_EXCEL"
+
+indicator_paths = {
+"ATR": "PATH_TO_ATR_EXCEL",
+"MACD": "PATH_TO_MACD_EXCEL",
+"OBV": "PATH_TO_OBV_EXCEL",
+"RSI": "PATH_TO_RSI_EXCEL",
+"ZScore": "PATH_TO_ZSCORE_EXCEL",
+}
+
+STEP 4: Load base price file
+
+df_base = pd.read_excel(base_path)
+df_base["Date"] = pd.to_datetime(df_base["Date"], errors="coerce")
+df_base = df_base.dropna(subset=["Date"])
+
+STEP 5: Keep only the relevant columns
+
+base_columns_to_keep = [
+"Date", "Ticker", "Sector", "Industry",
+"Open", "High", "Low", "Close",
+"Volume", "Daily Change"
+]
+df_base = df_base[base_columns_to_keep]
+
+STEP 6: Load and merge indicators
+
+for name, path in indicator_paths.items():
+df_temp = pd.read_excel(path)
+
+if isinstance(df_temp.columns, pd.MultiIndex):
+    df_temp.columns = df_temp.columns.get_level_values(0)
+
+df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
+df_temp = df_temp.dropna(subset=["Date"])
+
+columns = [col for col in df_temp.columns if col != "Close"]
+df_temp = df_temp[columns]
+
+df_base = pd.merge(df_base, df_temp, on="Date", how="left")
+
+STEP 7: Sort data by date (descending)
+
+df_base = df_base.sort_values("Date", ascending=False).reset_index(drop=True)
+
+STEP 8: Save the merged feature dataset
+
+output_folder = "OUTPUT_DIRECTORY_FOR_FEATURE_DATA"
+os.makedirs(output_folder, exist_ok=True)
+
+output_path = f"{output_folder}/stock_features_final.xlsx"
+df_base.to_excel(output_path, index=False)
+
+STEP 9: Create Target only for valid trading days (Mon–Fri)
+
+df_base["Date"] = pd.to_datetime(df_base["Date"], errors="coerce")
+df_base = df_base.sort_values("Date").reset_index(drop=True)
+
+for col in ['ATR_RMA', 'MACD', 'Signal', 'MACD_Histogram', 'OBV', 'RSI', 'Z_Score']:
+if col in df_base.columns:
+df_base[f"{col}_missing"] = df_base[col].isna().astype(int)
+
+fill_cols = ['ATR_RMA', 'MACD', 'Signal', 'MACD_Histogram', 'OBV', 'RSI', 'Z_Score']
+for col in fill_cols:
+if col in df_base.columns:
+df_base[col] = df_base[col].fillna(method="ffill")
+
+Filter to weekdays only
+
+df_workdays = df_base[df_base["Date"].dt.dayofweek < 5].copy()
+
+Calculate Next_Open and Target
+
+df_workdays["Next_Open"] = df_workdays["Open"].shift(-1)
+df_workdays["Target"] = (df_workdays["Next_Open"] > df_workdays["Close"]).astype("float")
+
+Map back the Target to full dataset
+
+target_map = df_workdays[["Date", "Target"]]
+df_base = pd.merge(df_base, target_map, on="Date", how="left")
+
+Final sorting (most recent first)
+
+df_base = df_base.sort_values("Date", ascending=False).reset_index(drop=True)
+
+Save final dataset with Target
+
+output_path_final = f"{output_folder}/stock_features_final_with_target.xlsx"
+df_base.to_excel(output_path_final, index=False)
+
+print(f"Final file with Target saved at:\n{output_path_final}")
+
