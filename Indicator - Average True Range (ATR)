@@ -1,0 +1,36 @@
+# STEP 1: Install 'ta' library and mount Google Drive
+!pip install ta --quiet
+from google.colab import drive
+drive.mount('/content/drive')
+
+# STEP 2: Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from ta.volatility import AverageTrueRange
+
+# STEP 3: Load Stock data
+file_path = "YOUR_LOCAL_OR_CLOUD_PATH/stock_daily.xlsx"  # Replace with your actual path
+df = pd.read_excel(file_path)
+df["Date"] = pd.to_datetime(df["Date"])
+df = df.sort_values("Date")
+
+# STEP 4: Remove NaNs and calculate ATR using RMA (14)
+df = df.dropna(subset=["High", "Low", "Close"]).copy()
+atr = AverageTrueRange(high=df["High"], low=df["Low"], close=df["Close"], window=14)
+df["ATR_RMA"] = atr.average_true_range()
+
+# STEP 5: Save to new Excel file
+output_path = "YOUR_LOCAL_OR_CLOUD_PATH/stock_ATR_RMA.xlsx"  # Replace with your actual path
+df[["Date", "Close", "ATR_RMA"]].to_excel(output_path, index=False)
+print(f"ATR RMA file saved to: {output_path}")
+
+# STEP 6: Plot ATR RMA
+plt.figure(figsize=(14, 4))
+plt.plot(df["Date"], df["ATR_RMA"], label="ATR (14) - RMA", color="orange", linewidth=2)
+plt.title("ATR (14) RMA for NVDA")
+plt.xlabel("Date")
+plt.ylabel("ATR (Wilder)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
