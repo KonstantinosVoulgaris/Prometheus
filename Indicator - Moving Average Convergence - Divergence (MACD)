@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # STEP 3: Load stock's price data
-file_path = "/content/drive/My Drive/...stock_data.xlsx"
+file_path = "/content/drive/My Drive/stock_data.xlsx" # Replace with your actual path
 df = pd.read_excel(file_path)
 df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date")
@@ -20,11 +20,11 @@ df["Signal"] = df["MACD"].ewm(span=9, adjust=False).mean()
 df["MACD_Histogram"] = df["MACD"] - df["Signal"]
 
 # STEP 5: Save
-output_path = "/content/drive/My Drive/...Stock_MACD.xlsx"
+output_path = "/content/drive/My Drive/Stock_MACD.xlsx" # Replace with your actual path
 df[["Date", "Close", "MACD", "Signal", "MACD_Histogram"]].to_excel(output_path, index=False)
-print(f"✅ MACD saved to: {output_path}")
+print(f" MACD saved to: {output_path}")
 
-# ✅ STEP 6: Plot MACD diagram
+# STEP 6: Plot MACD diagram
 plt.figure(figsize=(14, 6))
 plt.plot(df["Date"], df["MACD"], label="MACD", linewidth=2)
 plt.plot(df["Date"], df["Signal"], label="Signal Line", linestyle="--")
