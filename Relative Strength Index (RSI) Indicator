@@ -1,1 +1,46 @@
+# STEP 1: Install and connect with Drive
+!pip install --upgrade openpyxl --quiet
+from google.colab import drive
+drive.mount('/content/drive')
 
+# STEP 2: Import Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# STEP 3: Load Excel from Drive 
+file_path = "/content/drive/My Drive/... stock's data.xlsx"
+df = pd.read_excel(file_path)
+
+# STEP 4: filter and classification
+df = df.dropna(subset=["Close"]).copy()
+df["Date"] = pd.to_datetime(df["Date"])
+df = df.sort_values("Date")
+
+# STEP 5: Calculate RSI (14 day with ewm)
+delta = df["Close"].diff()
+gain = delta.clip(lower=0)
+loss = -delta.clip(upper=0)
+avg_gain = gain.ewm(alpha=1/14, adjust=False).mean()
+avg_loss = loss.ewm(alpha=1/14, adjust=False).mean()
+rs = avg_gain / avg_loss
+df["RSI"] = 100 - (100 / (1 + rs))
+
+# STEP 6: Save to new document
+output_path = "/content/drive/stock's name_RSI.xlsx"
+df[["Date", "Close", "RSI"]].to_excel(output_path, index=False)
+print(f"✅ Document RSI saved to: {output_path}")
+
+# STEP 7: Diagram RSI
+df_plot = df.dropna(subset=["RSI"])
+
+plt.figure(figsize=(14, 4))
+plt.plot(df_plot["Date"], df_plot["RSI"], label="RSI (14)", color="purple", linewidth=2)
+plt.axhline(70, color="red", linestyle="--", alpha=0.6, label="Overbought (70)")
+plt.axhline(30, color="green", linestyle="--", alpha=0.6, label="Oversold (30)")
+plt.title("RSI (14) για NVDA")
+plt.xlabel("Ημερομηνία")
+plt.ylabel("RSI")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
