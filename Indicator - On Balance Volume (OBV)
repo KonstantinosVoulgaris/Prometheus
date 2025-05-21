@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # STEP 3: Load adjusted prices file (path redacted)
-file_path = "PATH_TO_DAILY_EXCEL_FILE"
+file_path = "PATH_TO_DAILY_EXCEL_FILE" # Replace with your actual path
 df = pd.read_excel(file_path)
 df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date")
