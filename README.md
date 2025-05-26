@@ -1,9 +1,6 @@
-# AIQTM-Quantitative-Trading-Model
-Voulgaris I. Konstantinos – AIQTM Artificial Intelligence Quantitative Trading Model
+# TITAN (Topological Inference & Temporal Algorithms for Navigation)
 
-
-A fully automated, data-driven quantitative trading framework.
-This project aims to detect statistically significant patterns, generate trading signals, and eventually execute trades autonomously.
+A proprietary system designed to uncover latent spatial and temporal patterns to inform high-precision investment strategies.
 
 ### Key Philosophies
 
